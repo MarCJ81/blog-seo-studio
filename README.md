@@ -7,6 +7,7 @@
 - 서버 없음 · 로그인 없음 · 기본 상태에서 외부 요청 0건
 - 원고·키워드·메모는 `localStorage`에만 저장
 - 라이트/다크 모드, IBM Plex Sans KR, 반응형
+- **Pro AI 연결(선택)** — 헤더의 `무료 모드 · API 연결` 배지에서 OpenAI·Gemini·Claude·자체 서버를 연결하면, 구조·프롬프트 탭의 **✨ Pro AI로 완성 원고 생성**이 주제·키워드·메모로 완성 원고를 써서 원고 진단에 바로 넣습니다. 연결하지 않으면 기존 무료 엔진과 내 구독 AI 브리지가 0원·추가 요청 0건으로 그대로 동작합니다. 키는 기본 `sessionStorage`. 엔진: `engines/pro-api-connector.js` · `engines/pro-studio.js`
 
 ## 탭 4개
 

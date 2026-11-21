@@ -9,6 +9,8 @@
   const D = window.SeoData;
   const CP = window.CopyPsych || null;   // engines/copy-psych-engine.js
   const B = window.AiBridge || null;     // engines/ai-bridge.js
+  const P = window.ProConnector || null; // engines/pro-api-connector.js
+  const PS = window.ProStudio ? window.ProStudio.create(P) : null; // engines/pro-studio.js
 
   const $ = function (sel, root) { return (root || document).querySelector(sel); };
   const $$ = function (sel, root) { return Array.from((root || document).querySelectorAll(sel)); };
@@ -49,6 +51,7 @@
     lastScore: null,
     proxyRows: [],
     geminiBusy: false,
+    pro: { busy: false, last: null, body: '', title: '', meta: '' },
   };
 
   /* ── storage ─────────────────────────────────────────── */
@@ -1461,10 +1464,178 @@
     }
   }
 
+  /* ── Pro AI (완성 원고) ──────────────────────────────────
+     무료 모드에서는 버튼이 연결 안내만 열고, 어떤 요청도 보내지 않는다.
+     연결 뒤에는 buildProPrompt('blog') → generate → JSON → 진단 탭 삽입. */
+
+  function proToneLine() {
+    const t = C.TONES.filter(function (x) { return x.id === state.builder.tone; })[0];
+    if (!t) return '친근한 구어체. 실제로 말하듯, 존댓말이되 딱딱하지 않게.';
+    return t.label + ' — ' + t.desc + '. 실제로 말하듯 자연스럽게, 번역체·AI 요약체 금지.';
+  }
+
+  function proInput() {
+    const b = state.builder;
+    const memo = [
+      b.intro.problem ? '독자가 겪는 문제: ' + b.intro.problem : '',
+      b.intro.outcome ? '얻고 싶은 결과: ' + b.intro.outcome : '',
+      b.intro.proof ? '내 근거·수치: ' + b.intro.proof : '',
+      b.audience ? '읽는 사람: ' + b.audience : '',
+    ].filter(Boolean).join(' / ');
+    return {
+      topic: (b.topic || b.keyword || '').trim(),
+      target: (b.audience || '검색해서 들어온 사람').trim(),
+      goal: '네이버 블로그 상위노출. 검색으로 들어온 사람이 끝까지 읽고 저장하게.',
+      experience: memo,
+      keywords: (b.keyword || '').trim(),
+      length: fmt(Number(b.goalChars) || 2000) + '자',
+      tone: proToneLine(),
+    };
+  }
+
+  function proBodyText(data) {
+    const lines = [];
+    if (data.intro) lines.push(String(data.intro).trim());
+    (Array.isArray(data.sections) ? data.sections : []).forEach(function (s) {
+      if (!s) return;
+      if (s.h2) lines.push('## ' + String(s.h2).trim());
+      (Array.isArray(s.paragraphs) ? s.paragraphs : []).forEach(function (p) {
+        if (String(p || '').trim()) lines.push(String(p).trim());
+      });
+    });
+    if (data.cta) lines.push(String(data.cta).trim());
+    const tags = (Array.isArray(data.hashtags) ? data.hashtags : [])
+      .map(function (t) { return '#' + String(t).replace(/^#/, '').trim(); }).filter(function (t) { return t.length > 1; });
+    if (tags.length) lines.push(tags.join(' '));
+    return lines.join('\n\n').trim();
+  }
+
+  function setProBusy(on) {
+    state.pro.busy = !!on;
+    const btn = $('[data-action="pro-generate"]');
+    if (!btn) return;
+    btn.setAttribute('aria-busy', on ? 'true' : 'false');
+    const label = btn.querySelector('.pro-label');
+    if (label) label.textContent = on ? 'Pro AI가 쓰는 중…' : 'Pro AI로 완성 원고 생성';
+  }
+
+  function updateProUi() {
+    if (!PS) return;
+    const s = PS.sync($('#proBox') || document);
+    const stateEl = $('#proState');
+    if (stateEl && !state.pro.busy) {
+      stateEl.textContent = s.connected
+        ? s.providerName + ' 연결됨 · 주제·키워드·메모로 완성 원고를 쓰고 원고 진단까지 바로 돌립니다.'
+        : '무료 모드 · 지금 만든 뼈대와 프롬프트는 그대로 씁니다. Pro를 연결하면 완성 원고가 바로 들어옵니다.';
+    }
+  }
+
+  function showProResult(result, input) {
+    const data = result.data || {};
+    const panel = $('#proResult');
+    if (!panel) return;
+    panel.hidden = false;
+    const titles = Array.isArray(data.titleCandidates) ? data.titleCandidates : [];
+    $('#proTitle').textContent = titles[0] || state.pro.title || '';
+    const sub = [];
+    if (data.metaDescription) sub.push(data.metaDescription);
+    sub.push('본문 ' + fmt(C.countChars ? C.countChars(state.pro.body) : state.pro.body.length) + '자');
+    if (result.meta) sub.push([result.meta.provider, result.meta.model].filter(Boolean).join(' '));
+    $('#proSub').textContent = sub.join(' · ');
+    $('#proMeta').textContent = result.meta && result.meta.latencyMs ? Math.round(result.meta.latencyMs) + 'ms' : '';
+    state.pro.last = { titles: titles, data: data, input: input };
+  }
+
+  function runPro() {
+    if (!PS || !P) {
+      toast('Pro 연결 엔진을 불러오지 못했어요. 새로고침해 주세요.', { type: 'warn' });
+      return;
+    }
+    if (state.pro.busy) return;
+    const input = proInput();
+    if (!input.topic) {
+      toast('주제나 타깃 키워드를 먼저 입력하세요.', { type: 'warn' });
+      $('#bTopic').focus();
+      return;
+    }
+    if (!PS.connected()) {
+      updateProUi();
+      toast('무료 모드예요. Pro API를 연결하면 완성 원고가 바로 들어옵니다.');
+      PS.openConnect();
+      return;
+    }
+
+    setProBusy(true);
+    const stateEl = $('#proState');
+    if (stateEl) stateEl.textContent = 'Pro AI가 원고를 쓰는 중… (보통 10~40초) 창을 닫지 마세요.';
+
+    PS.run('blog', input).then(function (res) {
+      setProBusy(false);
+      if (!res.ok) {
+        updateProUi();
+        if (stateEl) stateEl.textContent = res.message;
+        toast(res.message, { type: 'warn' });
+        return;
+      }
+      const data = res.data || {};
+      const titles = (Array.isArray(data.titleCandidates) ? data.titleCandidates : []).map(function (t) { return String(t || '').trim(); }).filter(Boolean);
+      const body = proBodyText(data);
+      if (!body) {
+        toast('응답에 본문이 비어 있어요. 다시 시도해 주세요.', { type: 'warn' });
+        return;
+      }
+      state.pro.body = body;
+      state.pro.title = titles[0] || '';
+      state.pro.meta = PS.describe(res);
+
+      const keyword = input.keywords || state.builder.keyword || state.builder.topic || '';
+      state.diag.keyword = keyword;
+      state.diag.title = state.pro.title;
+      state.diag.body = body;
+      save(KEY.diag, state.diag);
+      if ($('#diagKeyword')) $('#diagKeyword').value = keyword;
+      if ($('#diagTitle')) $('#diagTitle').value = state.diag.title;
+      if ($('#diagBody')) $('#diagBody').value = body;
+
+      showProResult(res, input);
+      updateProUi();
+      if (stateEl) stateEl.textContent = (res.meta && res.meta.provider ? res.meta.provider + ' ' : '') + '완성 원고를 진단 탭에 넣었습니다. 점수와 걸리는 표현을 확인하세요.';
+      runDiagnosis();
+      switchTab('diagnose');
+      toast('완성 원고 ' + fmt(body.length) + '자를 넣고 진단을 돌렸어요.', { type: 'ok' });
+    });
+  }
+
+  /* 연결 버튼·모달은 처음 눌렀을 때 만든다.
+     시작하자마자 만들면 쓰지 않는 화면(제공자 키 안내 링크)이 DOM에 남는다. */
+  function hookProConnect() {
+    const btn = $('#proConnect');
+    if (!btn || btn.getAttribute('data-pro-hooked') === '1') return;
+    btn.setAttribute('data-pro-hooked', '1');
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (P && typeof P.mountModal === 'function') P.mountModal(btn);
+      PS.openConnect();
+    });
+  }
+
+  function initPro() {
+    if (!PS) return;
+    PS.badge('#proBadge');
+    hookProConnect();
+    PS.onConnectChange(function () { updateProUi(); });
+    updateProUi();
+  }
+
   /* ── delegated events ────────────────────────────────── */
 
   const ACTIONS = {
     'close-modal': function () { closeModal(); },
+    'pro-generate': function () { runPro(); },
+    'pro-copy-body': function () {
+      if (!state.pro.body) { toast('복사할 원고가 없어요.', { type: 'warn' }); return; }
+      copyText(state.pro.body, '완성 원고 본문을 복사했어요.');
+    },
     'toggle-theme': function () { applyTheme(state.theme === 'light' ? 'dark' : 'light'); },
     'open-settings': function () { openSettings(); },
     'go-keywords': function (el, e) { if (e) e.preventDefault(); switchTab('keywords'); },
@@ -1820,6 +1991,7 @@
     renderDrafts();
     updateProxyButton();
     updateSearchClear();
+    initPro();
     switchTab('keywords');
     save(KEY.seeded, D.SEED_VERSION);
   }
@@ -1832,5 +2004,6 @@
     state: state, switchTab: switchTab, renderKeywords: renderKeywords, runDiagnosis: runDiagnosis,
     renderBuilder: renderBuilder, renderIntro: renderIntro, renderBridge: renderBridge,
     C: C, CopyPsych: CP, AiBridge: B,
+    ProConnector: P, ProStudio: PS, runPro: runPro,
   };
 })();
