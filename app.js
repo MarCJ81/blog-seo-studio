@@ -606,10 +606,10 @@
   }
 
   function ringColor(grade) {
-    if (grade === 'S') return 'var(--brand)';
-    if (grade === 'A') return '#2563eb';
-    if (grade === 'B') return 'var(--amber)';
-    return 'var(--danger)';
+    if (grade === 'S') return 'var(--card-ink-ring)';
+    if (grade === 'A') return '#FFFFFF';
+    if (grade === 'B') return '#F5C77C';
+    return '#FF9A8A';
   }
 
   function renderHits(result) {
