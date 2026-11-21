@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>블로그 SEO 스튜디오 — 키워드 황금률 · 원고 진단 · 프롬프트 · 순위 트래커</title>
+<meta name="description" content="네이버 블로그 키워드 경쟁률과 황금 등급을 계산하고, 발행 전 원고를 100점으로 진단합니다. 제목·본문·키워드 반복·금지 표현·AI 번역체까지 한 화면에서. 서버 없이 브라우저에만 저장됩니다." />
+<meta name="theme-color" content="#ffffff" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body data-tab="keywords">
+<a class="skip-link" href="#main">본문으로 바로가기</a>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#" data-action="go-keywords" aria-label="블로그 SEO 스튜디오 홈">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 40 40" width="34" height="34">
+          <defs>
+            <linearGradient id="brandGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#2fd39a" /><stop offset="1" stop-color="#0b8a5e" />
+            </linearGradient>
+          </defs>
+          <rect x="1" y="1" width="38" height="38" rx="11" fill="url(#brandGrad)" />
+          <path d="M11 10.5h11l5 5v6" fill="none" stroke="#fff" stroke-opacity=".85" stroke-width="1.9" stroke-linejoin="round" />
+          <path d="M12.5 16h7M12.5 20h6M12.5 24h4" stroke="#fff" stroke-opacity=".55" stroke-width="1.7" stroke-linecap="round" />
+          <circle cx="24.5" cy="25" r="5" fill="none" stroke="#fff" stroke-width="2.1" />
+          <path d="M28.2 28.7l3.4 3.4" stroke="#fff" stroke-width="2.4" stroke-linecap="round" />
+        </svg>
+      </span>
+      <span class="brand-text">
+        <strong>블로그 SEO 스튜디오</strong>
+        <small>BLOG SEO STUDIO</small>
+      </span>
+    </a>
+
+    <nav class="tabs" role="tablist" aria-label="주요 화면">
+      <button class="tab is-active" role="tab" aria-selected="true" data-tab="keywords" aria-controls="view-keywords">키워드 황금률</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="diagnose" aria-controls="view-diagnose">원고 진단<span class="tab-dot" id="diagDot" hidden></span></button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="builder" aria-controls="view-builder">구조·프롬프트</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="tracker" aria-controls="view-tracker">발행 트래커<span class="tab-count" id="draftCount" hidden>0</span></button>
+    </nav>
+
+    <div class="top-actions">
+      <label class="search" for="searchInput">
+        <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12.8 12.8L17 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <input id="searchInput" type="search" placeholder="키워드 검색" autocomplete="off" spellcheck="false" />
+        <button type="button" class="search-clear" data-action="clear-search" aria-label="검색어 지우기" hidden>✕</button>
+      </label>
+      <button type="button" class="icon-btn" data-action="toggle-theme" aria-label="다크 모드로 전환" title="라이트/다크">
+        <svg class="ico-sun" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M10 1.6v2M10 16.4v2M1.6 10h2M16.4 10h2M4.1 4.1l1.4 1.4M14.5 14.5l1.4 1.4M15.9 4.1l-1.4 1.4M5.5 14.5l-1.4 1.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <svg class="ico-moon" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M16.5 12.4A7 7 0 0 1 7.6 3.5a7 7 0 1 0 8.9 8.9z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+      </button>
+      <button type="button" class="btn btn-ghost api-btn" data-action="open-settings" id="apiButton" title="프록시 API 연결 (선택)">
+        <span class="status-dot" id="apiDot" aria-hidden="true"></span>
+        <span class="api-full">프록시 연동</span><span class="api-short">API</span>
+      </button>
+      <button type="button" class="btn btn-primary" data-action="go-diagnose">
+        <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M4 10.5l3.4 3.4L16 5.8" stroke="currentColor" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        원고 진단
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+
+  <!-- ── 1. 키워드 황금률 ─────────────────────────── -->
+  <section class="view" id="view-keywords" role="tabpanel" aria-label="키워드 황금률">
+    <div class="view-head">
+      <div class="view-title">
+        <h1>황금 키워드 찾기</h1>
+        <p class="sub">경쟁률은 <b>문서수 ÷ 월 검색수</b>예요. 낮을수록 내 글이 들어갈 자리가 있어요. 등급과 추천도를 함께 보고 고르세요.</p>
+      </div>
+      <div class="summary" id="kwSummary"></div>
+    </div>
+
+    <div class="split">
+      <div class="main-col">
+        <div class="panel toolbar">
+          <div class="chips" id="kwChips" role="group" aria-label="키워드 필터"></div>
+          <div class="toolbar-tail">
+            <span class="toolbar-note" id="kwVisibleNote"></span>
+            <label class="sort" for="kwSort"><span>정렬</span>
+              <select id="kwSort">
+                <option value="score">추천도 높은 순</option>
+                <option value="volume">검색 많은 순</option>
+                <option value="docs">문서 적은 순</option>
+                <option value="ratio">경쟁률 낮은 순</option>
+                <option value="keyword">가나다 순</option>
+              </select>
+            </label>
+            <button type="button" class="btn btn-ghost btn-sm" data-action="open-add-keyword">+ 키워드</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-action="open-paste">표 붙여넣기</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-action="open-proxy-search" id="proxySearchBtn" hidden>프록시 조회</button>
+          </div>
+        </div>
+
+        <div class="panel table-panel">
+          <div class="kw-table" id="kwTable" role="table" aria-label="키워드 경쟁률 표">
+            <div class="kw-row kw-head" role="row">
+              <span role="columnheader">키워드</span>
+              <span role="columnheader" class="num">월 검색수</span>
+              <span role="columnheader" class="num">문서수</span>
+              <span role="columnheader" class="num">경쟁률</span>
+              <span role="columnheader">등급</span>
+              <span role="columnheader">추천도</span>
+              <span role="columnheader" class="right">관리</span>
+            </div>
+            <div id="kwRows"></div>
+          </div>
+          <div class="empty" id="kwEmpty" hidden>
+            <p><strong>조건에 맞는 키워드가 없습니다.</strong></p>
+            <p class="muted">필터를 풀거나 키워드를 직접 추가해 보세요.</p>
+            <button class="btn btn-ghost" data-action="reset-kw-filters">필터 초기화</button>
+          </div>
+          <div class="table-foot">
+            <span id="kwCount">0개</span>
+            <span class="muted" id="kwFootNote">내장 수치는 2026-11 기준 예시 데이터예요. 실제 검색량은 표 붙여넣기·프록시로 넣으세요.</span>
+            <button class="link-btn" data-action="reset-demo">예시 키워드 복원</button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side-col">
+        <div class="panel">
+          <div class="panel-head"><h2>지금 노려볼 3개</h2><span class="muted">추천도 기준</span></div>
+          <div id="kwTop3" class="top3"></div>
+        </div>
+        <div class="panel legend">
+          <div class="panel-head"><h2>경쟁률 읽는 법</h2></div>
+          <ul class="tips">
+            <li><span class="badge grade s">S</span> 경쟁률 0.15 이하 · 검색 1,000 이상 — 먼저 쓰면 유리해요.</li>
+            <li><span class="badge grade a">A</span> 0.35 이하 — 상위 글의 글자수·구성을 맞추면 승산 있어요.</li>
+            <li><span class="badge grade b">B</span> 0.80 이하 — 주제를 더 좁힌 롱테일을 함께 노리세요.</li>
+            <li><span class="badge grade c">C</span> 0.80 초과 — 상위 글의 벽이 두꺼워요. 다른 키워드가 나아요.</li>
+          </ul>
+          <p class="foot-note">경쟁률은 참고 지표일 뿐, 상위노출을 보장하지 않아요. 네이버도 보장하는 방법은 없다고 안내합니다.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ── 2. 원고 진단 ────────────────────────────── -->
+  <section class="view" id="view-diagnose" role="tabpanel" aria-label="실시간 원고 진단" hidden>
+    <div class="view-head">
+      <div class="view-title">
+        <h1>실시간 원고 진단</h1>
+        <p class="sub">입력하는 순간 점수가 바뀝니다. 90점 이상이면 발행 준비 완료, 75점은 조금만 다듬으면 돼요.</p>
+      </div>
+      <div class="view-actions">
+        <button class="btn btn-ghost btn-sm" data-action="load-sample" data-sample="good">잘 쓴 예시</button>
+        <button class="btn btn-ghost btn-sm" data-action="load-sample" data-sample="ai">AI 티 예시</button>
+        <button class="btn btn-ghost btn-sm danger" data-action="clear-diag">비우기</button>
+        <button class="btn btn-primary btn-sm" data-action="add-draft-from-diag">발행 목록에 추가</button>
+      </div>
+    </div>
+
+    <div class="diag-grid">
+      <div class="diag-editor">
+        <div class="panel editor-panel">
+          <div class="field-row">
+            <div class="field">
+              <label for="diagKeyword">타겟 키워드</label>
+              <input id="diagKeyword" type="text" placeholder="예: 겨울 가습기 관리법" autocomplete="off" spellcheck="false" />
+            </div>
+            <div class="field grow">
+              <label for="diagTitle">제목 <span class="field-hint" id="titleHint">0자 · 권장 28~42자</span></label>
+              <input id="diagTitle" type="text" placeholder="제목 앞 20자 안에 키워드를 넣어 보세요" autocomplete="off" spellcheck="false" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="diagBody">본문 <span class="field-hint" id="bodyHint">공백 제외 0자</span></label>
+            <textarea id="diagBody" rows="18" placeholder="원고를 붙여넣으면 바로 진단합니다.&#10;&#10;## 소제목을 쓰면 구조 점수가 올라가요." spellcheck="false"></textarea>
+          </div>
+          <div class="counters" id="diagCounters">
+            <span><b>0</b>자 공백 포함</span>
+            <span><b>0</b>자 공백 제외</span>
+            <span>문단 <b>0</b></span>
+            <span>키워드 <b>0</b>회</span>
+            <span>소제목 <b>0</b></span>
+            <span>표 <b>없음</b></span>
+          </div>
+          <p class="save-note" id="diagSaveNote">작성 중인 원고는 이 브라우저에 자동 저장됩니다.</p>
+        </div>
+
+        <div class="panel hits-panel">
+          <div class="panel-head">
+            <h2>표현 점검</h2>
+            <span class="legend-inline">
+              <i class="dot ai"></i> AI 번역체
+              <i class="dot banned"></i> 위험 표현
+              <i class="dot link"></i> 링크·연락처
+            </span>
+          </div>
+          <div class="highlight-box" id="highlightBox"><p class="muted">본문을 입력하면 위험 표현과 AI 번역체를 표시해 드려요.</p></div>
+          <div class="hits-cols">
+            <div>
+              <h3 class="mini-title">위험 표현 <em id="bannedCount">0</em></h3>
+              <div id="bannedList" class="hit-list"></div>
+            </div>
+            <div>
+              <h3 class="mini-title">AI 번역체 <em id="aiCount">0</em></h3>
+              <div id="aiList" class="hit-list"></div>
+            </div>
+          </div>
+          <p class="foot-note">네이버가 공식 공개한 '금지어 목록'은 없습니다. 이 검사는 법령·정책상 위험한 표현과 품질을 떨어뜨리는 패턴을 잡는 참고 도구예요.</p>
+        </div>
+      </div>
+
+      <aside class="diag-side">
+        <div class="panel score-panel">
+          <div class="score-head">
+            <div class="ring" id="scoreRing" style="--p:0">
+              <div class="ring-in">
+                <b id="scoreTotal">0</b>
+                <span>/ 100</span>
+              </div>
+            </div>
+            <div class="score-meta">
+              <span class="badge grade c" id="scoreGrade">C</span>
+              <strong id="scoreLabel">발행 전 손보세요</strong>
+              <span class="muted" id="scoreSub">키워드와 본문을 입력하세요</span>
+            </div>
+          </div>
+          <div class="parts" id="scoreParts"></div>
+        </div>
+
+        <div class="panel issues-panel">
+          <div class="panel-head"><h2>진단 항목</h2><span class="muted" id="issueCount">0</span></div>
+          <div id="issueList" class="issue-list"></div>
+        </div>
+
+        <div class="panel fixes-panel">
+          <div class="panel-head"><h2>이렇게 고치면 올라가요</h2></div>
+          <ol class="fix-list" id="fixList"></ol>
+        </div>
+      </aside>
+    </div>
+
+    <div class="psych-grid" id="psychGrid">
+      <div class="panel psych-panel">
+        <div class="panel-head">
+          <h2>마케팅 심리학 8대 트리거</h2>
+          <span class="muted">클릭 · 체류 · 전환</span>
+        </div>
+        <div class="psych-top">
+          <div class="psych-total">
+            <b id="psychTotal">0</b>
+            <span class="badge grade c" id="psychGrade">—</span>
+            <em id="psychLabel">제목과 본문을 입력하세요</em>
+          </div>
+          <div class="psych-groups" id="psychGroupChips"></div>
+        </div>
+        <div class="trig-list" id="psychTriggers"></div>
+        <div class="psych-gaps" id="psychGaps"></div>
+        <p class="foot-note">블로그 글은 구매 페이지가 아니라 희소성·구매 CTA가 낮은 게 정상이에요. 그래서 클릭(제목)과 체류(본문)를 먼저 봅니다. 점수는 참고 지표입니다.</p>
+      </div>
+
+      <div class="panel wordfix-panel">
+        <div class="panel-head">
+          <h2>추상어 · 공급자어 교정</h2>
+          <span class="muted" id="wordFixScore">감점 0</span>
+        </div>
+        <div class="wordfix-body" id="wordFixBody"></div>
+        <div class="wordfix-foot">
+          <button type="button" class="btn btn-primary btn-sm" data-action="apply-wordfix">안전 치환 적용</button>
+          <span class="muted" id="wordFixNote">사실을 새로 만드는 치환은 하지 않아요.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 3. 구조·프롬프트 ────────────────────────── -->
+  <section class="view" id="view-builder" role="tabpanel" aria-label="상위노출 원고 구조와 프롬프트" hidden>
+    <div class="view-head">
+      <div class="view-title">
+        <h1>상위노출 원고 구조</h1>
+        <p class="sub">주제만 넣으면 도입부 4종(PAS·BAB·AIDA·4U)과 H2 5단 아웃라인·체크리스트·비교표·태그·프롬프트가 한 번에 나옵니다. 그대로 복사해 쓰세요.</p>
+      </div>
+      <div class="view-actions">
+        <button class="btn btn-ghost btn-sm" data-action="copy-outline">아웃라인 복사</button>
+        <button class="btn btn-ghost btn-sm" data-action="send-to-diag">진단으로 보내기</button>
+      </div>
+    </div>
+
+    <div class="builder-grid">
+      <aside class="panel builder-form">
+        <div class="panel-head"><h2>글 설정</h2><span class="muted">입력하면 바로 생성</span></div>
+        <div class="field">
+          <label for="bTopic">주제</label>
+          <input id="bTopic" type="text" placeholder="예: 겨울 가습기 청소" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="bKeyword">타겟 키워드</label>
+          <input id="bKeyword" type="text" placeholder="예: 겨울 가습기 관리법" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="bAudience">독자층</label>
+          <input id="bAudience" type="text" placeholder="예: 원룸 사는 20대" autocomplete="off" />
+        </div>
+        <div class="field">
+          <span class="field-label">톤</span>
+          <div class="seg" id="toneSeg" role="group" aria-label="톤 선택"></div>
+        </div>
+        <div class="field">
+          <label for="bGoal">목표 글자수</label>
+          <select id="bGoal">
+            <option value="1500">1,500자 (짧게)</option>
+            <option value="2000" selected>2,000자 (표준)</option>
+            <option value="2500">2,500자 (충실)</option>
+            <option value="3000">3,000자 (대형)</option>
+          </select>
+        </div>
+        <div class="field">
+          <span class="field-label">포함할 것</span>
+          <div class="checks" id="includeChecks"></div>
+        </div>
+        <div class="builder-actions">
+          <button type="button" class="btn btn-primary" data-action="copy-prompt">프롬프트 복사</button>
+          <button type="button" class="btn btn-ghost" data-action="copy-outline">아웃라인 복사</button>
+        </div>
+        <p class="foot-note">프롬프트를 만든 뒤 아래 <b>내 구독 AI로 바로 보내기</b>에서 ChatGPT·Claude·Gemini 창을 한 번에 열 수 있어요. 로그인은 각 서비스에서 직접 합니다.</p>
+      </aside>
+
+      <div class="builder-out">
+        <div class="panel" id="titlePanel">
+          <div class="panel-head"><h2>제목 후보 5개</h2><span class="muted">28~42자가 이상적</span></div>
+          <div id="titleCandidates" class="title-list"></div>
+        </div>
+
+        <div class="panel" id="introPanel">
+          <div class="panel-head">
+            <h2>도입부 4종 — PAS · BAB · AIDA · 4U</h2>
+            <span class="muted" id="introPsych"></span>
+          </div>
+          <div class="intro-controls">
+            <div class="seg" id="fwSeg" role="group" aria-label="도입부 프레임워크"></div>
+            <div class="intro-inputs">
+              <label class="mini-field"><span>독자의 문제</span>
+                <input id="iProblem" type="text" placeholder="예: 물때와 냄새 때문에 스트레스" autocomplete="off" /></label>
+              <label class="mini-field"><span>얻는 결과</span>
+                <input id="iOutcome" type="text" placeholder="예: 주 1회 20분이면 끝" autocomplete="off" /></label>
+              <label class="mini-field"><span>근거·수치</span>
+                <input id="iProof" type="text" placeholder="예: 3년 사용, 기기 2대" autocomplete="off" /></label>
+            </div>
+          </div>
+          <div class="intro-out" id="introOut"></div>
+          <div class="prompt-actions">
+            <button type="button" class="btn btn-ghost btn-sm" data-action="copy-intro">도입부 복사</button>
+            <button type="button" class="btn btn-primary btn-sm" data-action="intro-to-diag">이 도입부로 진단 시작</button>
+            <span class="muted" id="introNote"></span>
+          </div>
+        </div>
+
+        <div class="panel" id="outlinePanel">
+          <div class="panel-head"><h2>H2 5단 아웃라인</h2><span class="muted" id="outlineGoal">2,000자 기준</span></div>
+          <div id="outlineList" class="outline-list"></div>
+        </div>
+
+        <div class="panel" id="kitPanel">
+          <div class="panel-head"><h2>체크리스트 · 비교표 뼈대</h2></div>
+          <div class="kit-grid">
+            <div>
+              <h3 class="mini-title">발행 전 체크리스트</h3>
+              <ul class="check-list" id="builderChecklist"></ul>
+            </div>
+            <div>
+              <h3 class="mini-title">비교표 뼈대</h3>
+              <div class="table-scroll">
+                <table class="mini-table" id="builderTable"></table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" id="extrasPanel">
+          <div class="panel-head"><h2>댓글 질문 · 태그</h2><button class="link-btn" data-action="copy-tags">태그 복사</button></div>
+          <div class="kit-grid">
+            <div>
+              <h3 class="mini-title">댓글 유도 질문</h3>
+              <ul class="question-list" id="builderQuestions"></ul>
+            </div>
+            <div>
+              <h3 class="mini-title">추천 태그 10개</h3>
+              <div class="tag-cloud" id="builderTags"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel prompt-panel">
+          <div class="panel-head"><h2>내 구독 AI로 바로 보내기</h2><span class="muted" id="promptLength"></span></div>
+          <pre id="promptBox" class="prompt-box"></pre>
+          <div class="prompt-actions">
+            <button type="button" class="btn btn-primary btn-sm" data-action="copy-prompt">프롬프트 복사</button>
+            <span class="muted">아래 버튼은 복사 + 새 창까지 한 번에 해요.</span>
+          </div>
+          <div class="bridge-btns" id="bridgeBtns"></div>
+          <p class="bridge-note" id="bridgeNote">ChatGPT·Claude는 입력창에 프롬프트가 채워집니다. 비어 있으면 열린 창에서 Ctrl+V로 붙여넣으세요. (로그인 전이면 로그인 후 붙여넣기)</p>
+        </div>
+
+        <div class="panel" id="aiDraftPanel">
+          <div class="panel-head"><h2>AI가 준 원고 → 90점 검수</h2><span class="muted">제목·본문·태그 자동 분리</span></div>
+          <textarea id="aiDraftInput" class="input" rows="8" placeholder="ChatGPT·Claude·Gemini가 쓴 답변을 통째로 붙여넣으세요.&#10;첫 줄은 제목, 그 아래는 본문으로 알아서 나눕니다." spellcheck="false"></textarea>
+          <div class="ai-draft-meta" id="aiDraftMeta">붙여넣으면 제목·본문·태그를 나눠서 미리 점수를 계산해요.</div>
+          <div class="prompt-actions">
+            <button type="button" class="btn btn-primary btn-sm" data-action="ai-draft-to-diag">진단 탭에서 열기</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-action="clear-ai-draft">비우기</button>
+          </div>
+          <details class="gemini-box">
+            <summary>무료 Gemini API 키로 여기서 바로 생성 (선택)</summary>
+            <p class="form-note">키가 없어도 위의 세 버튼으로 충분해요. 키를 넣으면 새 창 없이 이 화면에서 원고를 받습니다. 키는 이 브라우저에만 저장되고 Google 주소로만 전송됩니다.</p>
+            <div class="field-row">
+              <div class="field grow"><label for="geminiKey">Gemini API 키</label>
+                <input id="geminiKey" type="password" placeholder="AIza…" autocomplete="off" spellcheck="false" /></div>
+              <div class="field"><label for="geminiModel">모델</label>
+                <input id="geminiModel" type="text" list="geminiModels" placeholder="gemini-3.5-flash-lite" autocomplete="off" spellcheck="false" />
+                <datalist id="geminiModels"></datalist></div>
+            </div>
+            <div class="prompt-actions">
+              <button type="button" class="btn btn-primary btn-sm" data-action="gemini-generate">Gemini로 원고 생성</button>
+              <button type="button" class="btn btn-ghost btn-sm" data-action="save-gemini">키 저장</button>
+              <span class="muted" id="geminiStatus"></span>
+            </div>
+            <p class="form-note">무료 티어는 프로젝트·모델에 따라 한도가 다를 수 있어요. 오류가 나면 모델명을 바꿔 보세요.</p>
+          </details>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 4. 발행 트래커 ──────────────────────────── -->
+  <section class="view" id="view-tracker" role="tabpanel" aria-label="발행·순위 트래커" hidden>
+    <div class="view-head">
+      <div class="view-title">
+        <h1>발행 · 순위 트래커</h1>
+        <p class="sub">발행한 글의 키워드·점수·노출 상태를 한 곳에. 자동 순위 측정은 하지 않고, 직접 확인한 상태를 기록합니다.</p>
+      </div>
+      <div class="summary" id="draftSummary"></div>
+    </div>
+
+    <div class="panel toolbar">
+      <div class="chips" id="draftChips" role="group" aria-label="상태 필터"></div>
+      <div class="toolbar-tail">
+        <span class="toolbar-note" id="draftVisibleNote"></span>
+        <label class="sort" for="draftSort"><span>정렬</span>
+          <select id="draftSort">
+            <option value="date">최신 발행일</option>
+            <option value="score">점수 높은 순</option>
+            <option value="title">제목 가나다</option>
+          </select>
+        </label>
+        <button class="btn btn-ghost btn-sm" data-action="open-add-draft">+ 글 추가</button>
+        <button class="btn btn-ghost btn-sm" data-action="export-csv">CSV</button>
+        <button class="btn btn-ghost btn-sm" data-action="export-json">JSON</button>
+        <button class="btn btn-ghost btn-sm" data-action="import-json">가져오기</button>
+      </div>
+    </div>
+
+    <div class="panel table-panel">
+      <div class="draft-table" id="draftTable">
+        <div class="draft-row draft-head">
+          <span>상태</span><span>제목 / 키워드</span><span>발행일</span><span>점수</span><span>메모</span><span class="right">관리</span>
+        </div>
+        <div id="draftRows"></div>
+      </div>
+      <div class="empty" id="draftEmpty">
+        <p><strong>아직 기록한 글이 없습니다.</strong></p>
+        <p class="muted">진단 탭에서 점수를 확인한 뒤 '발행 목록에 추가'를 누르면 여기로 들어옵니다.</p>
+        <button class="btn btn-ghost" data-action="open-add-draft">첫 글 추가</button>
+      </div>
+    </div>
+    <input type="file" id="importFile" accept=".json,application/json" hidden />
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <p><strong>블로그 SEO 스튜디오</strong> · 서버 없음 · 로그인 없음 · 외부 트래커 0건 · 원고와 메모는 이 브라우저(localStorage)에만 저장됩니다.</p>
+    <p class="muted">내장 키워드 수치는 예시 데이터입니다. 점수는 참고 지표이며 상위노출을 보장하지 않습니다. 네이버 공식 금지어 목록은 존재하지 않습니다.</p>
+    <p class="muted"><a href="privacy.html">개인정보 처리방침</a></p>
+  </div>
+</footer>
+
+<div class="modal-root" id="modalRoot" hidden></div>
+<div class="toast-root" id="toastRoot" aria-live="polite"></div>
+
+<script src="engines/copy-psych-engine.js"></script>
+<script src="engines/ai-bridge.js"></script>
+<script src="core.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
