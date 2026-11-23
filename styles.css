@@ -967,6 +967,17 @@ body[data-tab="diagnose"] .search, body[data-tab="builder"] .search { display: n
 .gemini-box[open] summary { margin-bottom: 8px; }
 .gemini-box .field-row { margin-top: 10px; }
 
+/* 무료 AI 맛보기 */
+.free-taste { margin: 4px 0 12px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+.free-taste-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.free-taste-head strong { font-size: 12px; }
+.free-taste-head .muted { font-size: 10.5px; }
+.free-taste .prompt-actions { margin-top: 8px; }
+.free-limit { margin-top: 9px; padding: 10px 11px; border: 1px solid color-mix(in srgb, var(--amber-dot) 35%, transparent); border-radius: 9px; background: var(--amber-soft); font-size: 11px; line-height: 1.6; color: var(--ink-2); }
+.free-limit b { display: block; font-size: 11.5px; margin-bottom: 3px; }
+.free-limit-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+.free-limit-actions .btn { font-size: 10.5px; }
+
 @media (max-width: 1080px) {
   .psych-grid { grid-template-columns: 1fr; }
   .wordfix-body { max-height: none; }

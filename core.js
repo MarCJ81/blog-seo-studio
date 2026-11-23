@@ -10,7 +10,20 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  const VERSION = '1.0.0';
+  const VERSION = '1.1.0';
+
+  /* 한국어 어절·조사 정밀 분석 엔진(engines/korean-text.js).
+     브라우저에서는 window.KoreanText, node 테스트에서는 require 로 읽는다.
+     없으면 예전 정규식 방식으로 조용히 돌아간다. */
+  function loadKoreanText() {
+    const g = typeof self !== 'undefined' ? self : (typeof globalThis !== 'undefined' ? globalThis : {});
+    if (g && g.KoreanText) return g.KoreanText;
+    if (typeof require === 'function') {
+      try { return require('./engines/korean-text.js'); } catch (e) { /* noop */ }
+    }
+    return null;
+  }
+  const KT = loadKoreanText();
 
   const CATEGORIES = ['생활', '금융', 'IT', '맛집', '육아', '여행', '뷰티', '자기계발', '기타'];
 
@@ -39,6 +52,8 @@
   /* ── 숫자·표기 ───────────────────────────────────────────── */
 
   function clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, n)); }
+
+  function num(v) { const n = Number(v); return isFinite(n) ? n : 0; }
 
   function formatNumber(n) {
     const v = Number(n);
@@ -83,12 +98,22 @@
     return n;
   }
 
-  /** 키워드 안의 띄어쓰기를 유연하게 매칭하는 카운터. */
+  /**
+   * 키워드 카운터.
+   * 한국어 엔진이 있으면 **어절 경계 + 조사 변형**을 인정해 센다.
+   *   "가습기" → "가습기를/가습기가/가습기에서" = 1회 (조사)
+   *   "가습기" → "가습기살균제" = 0회(복합어로 따로 집계)
+   * 엔진이 없을 때만 예전 정규식으로 돌아간다.
+   */
   function keywordMatcher(keyword) {
     const kw = String(keyword || '').trim();
-    if (!kw) return { count: function () { return 0; } };
+    if (!kw) return { count: function () { return 0; }, detail: function () { return { exact: 0, embedded: 0, withJosa: 0, positions: [], embeddedWords: [] }; } };
+    if (KT && typeof KT.matcher === 'function') return KT.matcher(kw);
     const re = new RegExp(kw.split(/\s+/).map(escapeReg).join('\\s*'), 'gi');
-    return { count: function (text) { return (String(text).match(re) || []).length; } };
+    return {
+      count: function (text) { return (String(text).match(re) || []).length; },
+      detail: function (text) { return { exact: (String(text).match(re) || []).length, embedded: 0, withJosa: 0, positions: [], embeddedWords: [] }; },
+    };
   }
 
   function codePoints(s) { return Array.from(String(s || '')).length; }
@@ -555,9 +580,14 @@
     const charsNoSpace = codePoints(text.replace(/\s+/g, ''));
     const paragraphs = splitParagraphs(text);
     const matcher = keywordMatcher(keyword);
-    const keywordCount = keyword ? matcher.count(text) : 0;
+    const kwDetail = keyword ? matcher.detail(text) : { exact: 0, embedded: 0, withJosa: 0, positions: [], embeddedWords: [] };
+    const keywordCount = num(kwDetail.exact);
+    const embeddedCount = num(kwDetail.embedded);
+    const josaCount = num(kwDetail.withJosa);
     const kwLen = codePoints(String(keyword || '').replace(/\s+/g, ''));
     const density = charsNoSpace ? Math.round((keywordCount * kwLen / charsNoSpace) * 1000) / 10 : 0;
+    const words = KT && typeof KT.tokens === 'function' ? KT.tokens(text).length : 0;
+    const densityByWord = words && keyword ? Math.round((keywordCount / words) * 1000) / 10 : 0;
     const headings = countHeadings(text);
     const lists = countListItems(text);
     const table = hasTable(text);
@@ -606,6 +636,16 @@
     if (density > 3) {
       issues.push({ level: 'warn', code: 'density', title: '키워드 밀도가 높아요', detail: density + '% — 3%를 넘으면 도배로 보일 수 있어요.', fix: '반복을 줄이고 구체적 사례를 늘리세요.' });
       kwScore = Math.max(2, kwScore - 4);
+    }
+
+    /* 어절 기준 정밀 집계(한국어 엔진이 있을 때만) */
+    if (KT && keyword && embeddedCount > 0) {
+      issues.push({
+        level: 'info', code: 'kw-compound',
+        title: '더 긴 단어 안에 들어간 키워드 ' + embeddedCount + '곳',
+        detail: (kwDetail.embeddedWords || []).slice(0, 3).join(', ') + (embeddedCount > 3 ? ' 외' : '') + ' — 반복 수에는 넣지 않았어요.',
+        fix: '복합어로만 쓰고 있다면, 키워드를 단독으로 한 번은 써 주세요.',
+      });
     }
 
     /* 구조 20 */
@@ -658,7 +698,12 @@
       paragraphs: paragraphs.length,
       sentences: (text.match(/[.!?](\s|$)/g) || []).length,
       keywordCount: keywordCount,
+      embeddedCount: embeddedCount,
+      josaCount: josaCount,
+      embeddedWords: kwDetail.embeddedWords || [],
+      words: words,
       density: density,
+      densityByWord: densityByWord,
       headings: headings,
       lists: lists,
       hasTable: table,

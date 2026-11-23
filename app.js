@@ -11,6 +11,8 @@
   const B = window.AiBridge || null;     // engines/ai-bridge.js
   const P = window.ProConnector || null; // engines/pro-api-connector.js
   const PS = window.ProStudio ? window.ProStudio.create(P) : null; // engines/pro-studio.js
+  const FA = window.FreeAI || null;      // engines/free-ai-client.js (무료 AI 맛보기)
+  if (FA) FA.configure({ endpoint: 'https://free-ai-taste.goodday810202.workers.dev', app: 'blog-seo-studio' });
 
   const $ = function (sel, root) { return (root || document).querySelector(sel); };
   const $$ = function (sel, root) { return Array.from((root || document).querySelectorAll(sel)); };
@@ -51,6 +53,7 @@
     lastScore: null,
     proxyRows: [],
     geminiBusy: false,
+    freeBusy: false,
     pro: { busy: false, last: null, body: '', title: '', meta: '' },
   };
 
@@ -549,7 +552,8 @@
       '<span><b>' + fmt(m.chars) + '</b>자 공백 포함</span>' +
       '<span class="' + (lenOK ? 'ok' : 'warn') + '"><b>' + fmt(m.charsNoSpace) + '</b>자 공백 제외</span>' +
       '<span>문단 <b>' + m.paragraphs + '</b></span>' +
-      '<span class="' + (m.keywordCount >= 4 && m.keywordCount <= 8 ? 'ok' : 'warn') + '">키워드 <b>' + m.keywordCount + '</b>회</span>' +
+      '<span class="' + (m.keywordCount >= 4 && m.keywordCount <= 8 ? 'ok' : 'warn') + '" title="어절 경계 기준 · 조사가 붙은 형태 포함">키워드 <b>' + m.keywordCount + '</b>회' +
+        (m.embeddedCount ? ' <span class="muted">· 복합어 ' + m.embeddedCount + '</span>' : '') + '</span>' +
       '<span class="' + (m.headings >= 3 ? 'ok' : '') + '">소제목 <b>' + m.headings + '</b></span>' +
       '<span class="' + (m.table ? 'ok' : '') + '">표 <b>' + (m.table ? '있음' : '없음') + '</b></span>';
 
@@ -1173,6 +1177,91 @@
     }
   }
 
+  /* ── 무료 AI 맛보기 (Cloudflare Worker) ─────────────────
+     키가 없는 방문자가 하루 몇 번 바로 원고를 받아 보는 경로.
+     503(모든 제공자 혼잡)은 클라이언트가 1회 자동 재시도하고,
+     429(한도 소진)면 내 키·구독 브리지 안내 카드를 띄운다. */
+
+  function freeSystemLine() {
+    return '한국어 블로그 원고를 쓴다. 첫 줄은 제목, 그 다음부터 본문. ' +
+      '번역체·AI 요약체 금지, 실제로 말하듯 자연스럽게. 표시광고법 위반 표현(최고·유일·100%) 금지.';
+  }
+
+  function renderFreeLimit(res) {
+    const card = $('#freeLimitCard');
+    const status = $('#freeStatus');
+    if (status) status.textContent = '오늘 무료 체험을 다 썼어요';
+    if (!card) return;
+    const cta = (res && res.cta) || {};
+    const href = cta.keyUrl || 'https://aistudio.google.com/apikey';
+    card.hidden = false;
+    card.innerHTML =
+      '<b>무료 체험을 다 쓰셨어요</b>' +
+      '<div>' + esc((res && res.message) || '오늘 무료 횟수를 모두 썼어요. 내 키나 구독 AI로 이어서 쓸 수 있어요.') + '</div>' +
+      '<div class="free-limit-actions">' +
+        '<a class="btn btn-primary btn-sm" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" data-action="free-connect-key">내 무료 Gemini 키 연결</a>' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-action="free-open-pro">구독 AI 브리지로 이어서</button>' +
+      '</div>';
+  }
+
+  function renderFreeRemain(res) {
+    const remain = $('#freeRemain');
+    const status = $('#freeStatus');
+    if (remain) {
+      remain.textContent = (res && res.remaining !== null && res.remaining !== undefined)
+        ? '남은 무료 ' + res.remaining + '/' + (res.limit || 5) + '회'
+        : '';
+    }
+    if (status) status.textContent = '무료로 받았어요' + (res && res.provider ? ' · ' + res.provider : '');
+  }
+
+  async function freeTasteGenerate() {
+    const status = $('#freeStatus');
+    if (!FA) { if (status) status.textContent = '무료 체험 엔진을 불러오지 못했어요.'; return; }
+    if (state.freeBusy) return;
+    if (!builderReady()) { toast('주제나 키워드를 먼저 입력하세요.', { type: 'warn' }); return; }
+
+    state.freeBusy = true;
+    const btn = $('[data-action="free-generate"]');
+    if (btn) btn.setAttribute('aria-busy', 'true');
+    const card = $('#freeLimitCard');
+    if (card) card.hidden = true;
+    if (status) status.textContent = '무료로 생성 중… (5~20초)';
+
+    let res;
+    try {
+      res = await FA.routeWith(P, {
+        task: 'text',
+        prompt: C.buildPrompt(builderOptions()),
+        system: freeSystemLine(),
+        options: { temperature: 0.7, maxTokens: 900 },
+      }, { timeoutMs: 45000 });
+    } catch (e) {
+      res = { ok: false, message: '연결하지 못했어요. 인터넷을 확인하고 다시 시도해 주세요.' };
+    } finally {
+      state.freeBusy = false;
+      if (btn) btn.setAttribute('aria-busy', 'false');
+    }
+
+    if (res && res.ok) {
+      const input = $('#aiDraftInput');
+      if (input) input.value = res.text;
+      renderAiDraft();
+      renderFreeRemain(res);
+      toast('원고를 받았어요. 아래 [진단 탭에서 열기]를 누르세요.');
+      return;
+    }
+
+    if (FA.isQuota(res)) { renderFreeLimit(res); return; }
+    if (status) {
+      status.className = 'muted';
+      status.textContent = (res && res.message) || '무료 체험 중 문제가 생겼어요. 잠시 뒤 다시 시도해 주세요.';
+    }
+    if (res && res.reason === 'all_providers_busy') {
+      toast('지금 무료 AI가 혼잡해요. 잠시 뒤 다시 눌러 주세요.', { type: 'warn' });
+    }
+  }
+
   function renderToneSeg() {
     const seg = $('#toneSeg');
     if (!seg) return;
@@ -1716,6 +1805,18 @@
       if (s) { s.className = 'form-ok'; s.textContent = '키를 이 브라우저에만 저장했어요.'; }
     },
     'gemini-generate': function () { geminiGenerate(); },
+    'free-generate': function () { freeTasteGenerate(); },
+    'free-connect-key': function () {
+      const key = $('#geminiKey');
+      if (key) { key.focus(); key.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+      const s = $('#freeStatus');
+      if (s) s.textContent = 'AI Studio에서 키를 발급해 아래 칸에 넣으면 같은 화면에서 이어서 생성합니다.';
+    },
+    'free-open-pro': function () {
+      if (PS && PS.openConnect) { PS.openConnect(); return; }
+      const btn = document.querySelector('[data-action="pro-generate"]');
+      if (btn) btn.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    },
     'copy-outline': function () {
       if (!state.builder.topic && !state.builder.keyword) { toast('주제를 먼저 입력하세요.', { type: 'warn' }); return; }
       copyText(outlineText(), '아웃라인을 복사했어요.');
