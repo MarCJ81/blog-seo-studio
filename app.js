@@ -1182,6 +1182,19 @@
      503(모든 제공자 혼잡)은 클라이언트가 1회 자동 재시도하고,
      429(한도 소진)면 내 키·구독 브리지 안내 카드를 띄운다. */
 
+  /* 무료 체험은 짧은 초안만 받는다.
+     Worker의 무료 모델은 12초 안에 700토큰을 못 채우면 503을 준다(실측).
+     그래서 900자 이내 초안을 요청하고 maxTokens도 낮춘다. Pro는 그대로 전체 원고. */
+  function freeTastePrompt() {
+    const b = state.builder;
+    const topic = (b.topic || b.keyword || '').trim();
+    const kw = (b.keyword || '').trim();
+    const tone = proToneLine();
+    return '너는 네이버 블로그 작가다. 주제 "' + topic + '"' + (kw && kw !== topic ? ' (키워드: ' + kw + ')' : '') +
+      '로 제목 1줄, 소제목 3개, 각 소제목 아래 2~3문장, 마지막에 태그 5개를 써라. 900자 이내. ' +
+      '톤: ' + tone + ' 없는 수치나 출처는 만들지 말 것.';
+  }
+
   function freeSystemLine() {
     return '한국어 블로그 원고를 쓴다. 첫 줄은 제목, 그 다음부터 본문. ' +
       '번역체·AI 요약체 금지, 실제로 말하듯 자연스럽게. 표시광고법 위반 표현(최고·유일·100%) 금지.';
@@ -1232,9 +1245,9 @@
     try {
       res = await FA.routeWith(P, {
         task: 'text',
-        prompt: C.buildPrompt(builderOptions()),
+        prompt: freeTastePrompt(),
         system: freeSystemLine(),
-        options: { temperature: 0.7, maxTokens: 900 },
+        options: { temperature: 0.7, maxTokens: 600 },
       }, { timeoutMs: 45000 });
     } catch (e) {
       res = { ok: false, message: '연결하지 못했어요. 인터넷을 확인하고 다시 시도해 주세요.' };
