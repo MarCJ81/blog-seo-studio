@@ -12,7 +12,7 @@
   const P = window.ProConnector || null; // engines/pro-api-connector.js
   const PS = window.ProStudio ? window.ProStudio.create(P) : null; // engines/pro-studio.js
   const FA = window.FreeAI || null;      // engines/free-ai-client.js (무료 AI 맛보기)
-  if (FA) FA.configure({ endpoint: 'https://free-ai-taste.goodday810202.workers.dev', app: 'blog-seo-studio' });
+  if (FA) FA.configure({ endpoint: 'https://free-ai-taste.onetap-ai.workers.dev', app: 'blog-seo-studio' });
 
   const $ = function (sel, root) { return (root || document).querySelector(sel); };
   const $$ = function (sel, root) { return Array.from((root || document).querySelectorAll(sel)); };
