@@ -597,6 +597,93 @@
     };
   }
 
+
+  /* ==========================================================
+     English builders (EN UI). Korean builders above stay untouched.
+     ========================================================== */
+  function priceLineEN(I) {
+    if (I.priceBefore && I.priceAfter) return 'List ' + I.priceBefore + ' → now ' + I.priceAfter;
+    if (I.priceAfter) return 'Now ' + I.priceAfter;
+    return '';
+  }
+
+  function proofLineEN(I) {
+    if (!I.proof) return '';
+    return /[.!?]$/.test(I.proof) ? I.proof : I.proof + '.';
+  }
+
+  function capDotEN(v) {
+    var t = str(v).trim();
+    if (!t) return '';
+    t = t.charAt(0).toUpperCase() + t.slice(1);
+    return /[.!?]$/.test(t) ? t : t + '.';
+  }
+
+  function buildEN(key, I, variant) {
+    var v = variant || 0;
+    var pl = priceLineEN(I);
+    var proof = proofLineEN(I);
+    var cta = I.cta || 'See it now';
+    var name = FRAMEWORK_INDEX[key].name;
+
+    if (key === 'PAS') {
+      var t1 = v % 2 === 0
+        ? capDotEN(I.problem).replace(/\.$/, '') + ' — still the same?'
+        : I.product + ' in one step: ' + I.solution;
+      return {
+        id: 'PAS', name: name, title: t1,
+        sections: [
+          { key: 'problem', label: 'Problem', text: 'If you are ' + I.target + ', you know this scene. ' + capDotEN(I.problem) + ' You have learned to live with it — but should you?' },
+          { key: 'agitate', label: 'Agitate', text: 'It does not stop there. ' + capDotEN(I.problem) + ' It comes back every time you hit the same wall, and time and money leak away quietly.' + (I.urgency ? ' ' + I.urgency : '') },
+          { key: 'solution', label: 'Solution', text: I.product + ': ' + capDotEN(I.solution) + (pl ? ' ' + pl + '.' : '') + (proof ? ' ' + proof : '') + ' ' + cta + (I.guarantee ? ' — ' + I.guarantee : ' — no sign-up, check it yourself') + '.' },
+        ],
+      };
+    }
+
+    if (key === 'BAB') {
+      var t2 = v % 2 === 0
+        ? '"' + I.problem + '" → "' + I.solution + '"'
+        : 'One change, a different day for ' + I.target;
+      return {
+        id: 'BAB', name: name, title: t2,
+        sections: [
+          { key: 'before', label: 'Before', text: 'Right now a day for ' + I.target + ' comes down to one sentence: "' + I.problem + '." Leave it and tomorrow looks the same.' },
+          { key: 'after', label: 'After', text: 'With ' + I.product + ', ' + capDotEN(I.solution) + (proof ? ' ' + proof : '') + (pl ? ' ' + pl + '.' : '') },
+          { key: 'bridge', label: 'Bridge', text: 'One step is all it takes. ' + cta + ' — three minutes, no sign-up.' + (I.urgency ? ' ' + I.urgency : '') },
+        ],
+      };
+    }
+
+    if (key === 'AIDA') {
+      var att = v % 2 === 0
+        ? '"' + I.problem + '" — if you are ' + I.target + ', that sentence makes you stop. Tired of it?'
+        : 'Still ' + I.problem + '? The cause is somewhere else.';
+      return {
+        id: 'AIDA', name: name, title: I.product + ' — ' + I.solution,
+        sections: [
+          { key: 'attention', label: 'Attention', text: att },
+          { key: 'interest', label: 'Interest', text: I.product + ' focuses on one thing instead of adding features. ' + capDotEN(I.solution) },
+          { key: 'desire', label: 'Desire', text: (proof ? proof + ' ' : '') + 'You do not have to go back to that scene.' + (pl ? ' ' + pl + '.' : '') },
+          { key: 'action', label: 'Action', text: cta + ' — right now, no sign-up.' + (I.urgency ? ' ' + I.urgency : '') + (I.guarantee ? ' ' + I.guarantee : '') },
+        ],
+      };
+    }
+
+    var hasNumber = /\d/.test(I.proof + ' ' + I.solution + ' ' + I.problem);
+    var t4 = v % 2 === 0
+      ? I.product + ', ' + I.solution
+      : (hasNumber ? '' : 'One thing changed. ') + I.solution + ' without ' + I.problem;
+    return {
+      id: '4U', name: name, title: t4,
+      sections: [
+        { key: 'useful', label: 'Useful', text: 'Built for ' + I.target + '. ' + I.problem + ' disappears, and the features you never use are gone.' },
+        { key: 'urgent', label: 'Urgent', text: I.urgency ? I.urgency : cta + ' — tomorrow the terms may change.' },
+        { key: 'unique', label: 'Unique', text: 'The reason it is ' + I.product + ' and not another fix: ' + capDotEN(I.solution) + (pl ? ' ' + pl + '.' : '') },
+        { key: 'specific', label: 'Specific', text: proof ? proof + ' Check the numbers yourself.' : 'Check it in numbers. (Add users, period and measurements and the 4U is complete.)' },
+      ],
+    };
+  }
+
   var BUILDERS = { PAS: buildPAS, BAB: buildBAB, AIDA: buildAIDA, '4U': build4U };
 
   /**
@@ -610,7 +697,8 @@
     var key = String(id || '').toUpperCase();
     if (!BUILDERS[key]) throw new Error('unknown framework: ' + id);
     var I = normalizeInput(input);
-    var raw = BUILDERS[key](I, opts.variant || 0);
+    var enMode = (typeof window !== 'undefined' && window.ONETAP_LANG === 'en');
+    var raw = enMode ? buildEN(key, I, opts.variant || 0) : BUILDERS[key](I, opts.variant || 0);
 
     var body = raw.sections.map(function (s) { return s.text; }).join('\n\n');
     var diag = diagnose(body);

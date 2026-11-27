@@ -199,7 +199,7 @@
     const all = analyzedKeywords();
     const stats = C.keywordStats(all);
     $('#kwSummary').innerHTML =
-      '<div class="stat"><b>' + fmt(stats.total) + '</b><span>키워드</span></div>' +
+      '<div class="stat"><b>' + fmt(stats.total) + '</b><span>키워드 수</span></div>' +
       '<div class="stat hot"><b>' + fmt(stats.byGrade.S) + '</b><span>S등급</span></div>' +
       '<div class="stat"><b>' + stats.avgScore + '</b><span>평균 추천도</span></div>' +
       '<div class="stat"><b>' + all.filter(function (r) { return r.custom; }).length + '</b><span>내가 추가</span></div>';
@@ -257,8 +257,8 @@
     return '<div class="kw-row" role="row" data-id="' + esc(r.id) + '">' +
       '<div class="kw-name"><span class="kw-text" title="' + esc(r.keyword) + '">' + esc(r.keyword) + '</span>' +
         '<span class="kw-cat">' + esc(r.category) + '</span></div>' +
-      '<div class="kw-num" data-label="월 검색수">' + fmt(r.volume) + '<span class="unit">회</span></div>' +
-      '<div class="kw-num" data-label="문서수">' + fmt(r.docs) + '<span class="unit">개</span></div>' +
+      '<div class="kw-num" data-label="월 검색수">' + fmt(r.volume) + '<span class="unit" data-unit="mo">회</span></div>' +
+      '<div class="kw-num" data-label="문서수">' + fmt(r.docs) + '<span class="unit" data-unit="docs">개</span></div>' +
       '<div class="kw-ratio" data-label="경쟁률">' + ratioText(r) +
         '<span class="sat' + (r.saturation > 80 ? ' hot' : '') + '">포화 ' + (r.saturation >= 999 ? '—' : r.saturation + '%') + '</span></div>' +
       '<div class="kw-grade"><span class="badge grade ' + r.grade.toLowerCase() + '" title="' + esc(r.gradeLabel) + '">' + r.grade + '</span></div>' +
@@ -947,13 +947,14 @@
     const topic = state.builder.topic.trim();
     const subject = kw || topic;
     const i = state.builder.intro;
+    const en = (typeof window !== 'undefined' && window.ONETAP_LANG === 'en');
     return {
-      product: subject || '이 글의 주제',
-      target: state.builder.audience.trim() || '처음 알아보는 분',
-      problem: i.problem.trim() || '무엇부터 손대야 할지 몰라 검색만 반복하는 상태',
-      solution: i.outcome.trim() || '순서만 바꾸면 30분 안에 끝나는 3단계',
+      product: subject || (en ? 'this topic' : '이 글의 주제'),
+      target: state.builder.audience.trim() || (en ? 'first-time readers' : '처음 알아보는 분'),
+      problem: i.problem.trim() || (en ? 'stuck repeating searches because you do not know where to start' : '무엇부터 손대야 할지 몰라 검색만 반복하는 상태'),
+      solution: i.outcome.trim() || (en ? 'a three-step order that ends in 30 minutes' : '순서만 바꾸면 30분 안에 끝나는 3단계'),
       proof: i.proof.trim(),
-      cta: '댓글로 상황 알려주기',
+      cta: en ? 'tell me your situation in the comments' : '댓글로 상황 알려주기',
       tone: 'casual',
     };
   }
@@ -991,10 +992,15 @@
       return;
     }
     const prof = introProfile(fw);
-    $('#introPsych').textContent = fw.id + ' · 설득 점수 ' + prof.total + '점 (' + prof.grade.id + ')';
+    const enMode = (typeof window !== 'undefined' && window.ONETAP_LANG === 'en');
+    $('#introPsych').textContent = enMode
+      ? fw.id + ' · persuasion score ' + prof.total + ' (' + prof.grade.id + ')'
+      : fw.id + ' · 설득 점수 ' + prof.total + '점 (' + prof.grade.id + ')';
     const i = state.builder.intro;
     const missing = !i.problem.trim() || !i.outcome.trim();
-    $('#introNote').textContent = fw.chars + '자 · ' + (missing ? '독자의 문제·얻는 결과를 채우면 문장이 정확해져요' : '그대로 복사해도 됩니다');
+    $('#introNote').textContent = enMode
+      ? fw.chars + ' chars · ' + (missing ? 'fill in the problem and the outcome to sharpen the copy' : 'ready to copy as is')
+      : fw.chars + '자 · ' + (missing ? '독자의 문제·얻는 결과를 채우면 문장이 정확해져요' : '그대로 복사해도 됩니다');
     box.innerHTML =
       '<div class="intro-title"><span class="t-formula">' + esc(fw.id) + '</span><b>' + esc(fw.title) + '</b></div>' +
       fw.sections.map(function (s) {

@@ -12,6 +12,9 @@
 
   const VERSION = '1.1.0';
 
+  /* 영어 UI 모드에서는 영어 데모 문구·탐지 사전을 쓴다(한국어 모드 동작은 그대로). */
+  const IS_EN = (typeof window !== 'undefined' && window.ONETAP_LANG === 'en');
+
   /* 한국어 어절·조사 정밀 분석 엔진(engines/korean-text.js).
      브라우저에서는 window.KoreanText, node 테스트에서는 require 로 읽는다.
      없으면 예전 정규식 방식으로 조용히 돌아간다. */
@@ -246,7 +249,7 @@
 
   /* ── 위험 표현 사전 ─────────────────────────────────────── */
 
-  const BANNED_GROUPS = [
+  const BANNED_GROUPS_KO = [
     {
       id: 'hype', label: '과장·최상급', tone: 'danger',
       reason: '근거 없는 최상급은 표시광고법상 거짓·과장 광고가 될 수 있어요.',
@@ -277,6 +280,37 @@
     },
   ];
 
+
+  const BANNED_GROUPS_EN = [
+    {
+      id: 'hype', label: 'Hype & superlatives', tone: 'danger',
+      reason: 'Unsupported superlatives can count as false or exaggerated advertising.',
+      fix: 'Lower it to your own experience — "best of the three I tried"',
+      words: ['best in the world', 'number one', '#1', 'perfect', 'guaranteed', '100% guaranteed', 'unbeatable',
+        'lowest price ever', 'miracle', 'revolutionary', 'world-class', 'flawless'],
+    },
+    {
+      id: 'medical', label: 'Health claims', tone: 'danger',
+      reason: 'Claiming to cure or prevent disease in food, cosmetics or medical ads breaks health-advertising rules.',
+      fix: 'Narrow it to how it felt for you — "it felt moisturising to me"',
+      words: ['cures', 'miracle cure', 'no side effects', 'detox', 'boosts immunity', 'burns fat', 'pain-free for life'],
+    },
+    {
+      id: 'finance', label: 'Investment claims', tone: 'danger',
+      reason: 'Promising returns or principal protection is a prohibited misleading claim under financial consumer law.',
+      fix: 'State facts and conditions only — "rates depend on when you sign up"',
+      words: ['guaranteed returns', 'risk-free profit', 'double your money', 'high-yield guaranteed', 'no risk', 'sure profit'],
+    },
+    {
+      id: 'commerce', label: 'Sales pressure', tone: 'warn',
+      reason: 'Heavy purchase pressure or contact lists can get the post judged as promotional.',
+      fix: 'Aim for 8 parts information to 2 parts promotion, and disclose paid ties up front',
+      words: ['dm me', 'link in bio', 'limited spots', 'today only', 'buy now', 'click the link below'],
+    },
+  ];
+
+  const BANNED_GROUPS = IS_EN ? BANNED_GROUPS_EN : BANNED_GROUPS_KO;
+
   const BANNED_WORDS = BANNED_GROUPS.reduce(function (acc, g) {
     g.words.forEach(function (w) {
       acc.push({ word: w, group: g.id, label: g.label, tone: g.tone, reason: g.reason, fix: g.fix });
@@ -285,7 +319,7 @@
   }, []);
 
   /** AI 요약체·번역체 패턴. 문장 끝 어미까지 포함해 하이라이트한다. */
-  const AI_PATTERNS = [
+  const AI_PATTERNS_KO = [
     {
       id: 'announce', label: 'AI 안내체',
       re: /(?:살펴보겠습니다|알아보겠습니다|정리해\s?보겠습니다|소개해\s?드리겠습니다|말씀드리겠습니다|확인해\s?보겠습니다|안내해\s?드리겠습니다)/g,
@@ -347,6 +381,32 @@
       suggestion: '"여기서 중요한 건 ~예요"',
     },
   ];
+
+
+  const AI_PATTERNS_EN = [
+    { id: 'announce', label: 'AI announcement', re: /(?:in this (?:article|post),? we(?:'| w)ill|let'?s (?:take a look|dive in)|we(?:'| w)ill explore)/gi,
+      suggestion: 'Say what you found instead — "after 3 years, here is what stuck"' },
+    { id: 'copula', label: 'Importance filler', re: /(?:it is (?:important|worth) (?:to note|noting)|it'?s (?:important|worth) (?:to note|noting))/gi,
+      suggestion: 'Cut it and state the fact' },
+    { id: 'possibility', label: 'Possibility cliché', re: /(?:can (?:help|be a great way)|may (?:help|be)|plays? a (?:crucial|vital|key) role)/gi,
+      suggestion: 'Say what actually happened for you' },
+    { id: 'passive', label: 'Double passive', re: /(?:is (?:designed|crafted|engineered) to|are (?:designed|crafted) to)/gi,
+      suggestion: 'Use the active voice — "it does X"' },
+    { id: 'formal', label: 'Summary ending', re: /(?:in conclusion|to sum up|overall,|all in all)/gi,
+      suggestion: 'End with your own take — "here is what I would do"' },
+    { id: 'connector', label: 'Connector overuse', re: /\b(?:moreover|furthermore|additionally|that being said)\b/gi,
+      suggestion: 'Use "and / so / but", or split the sentence' },
+    { id: 'vague', label: 'Vague quantifier', re: /\b(?:various|a wide range of|numerous|a variety of)\b/gi,
+      suggestion: 'Give the real count — "12 kinds"' },
+    { id: 'intensifier', label: 'Needless intensifier', re: /\b(?:extremely|incredibly|truly|absolutely)\b/gi,
+      suggestion: 'Cut the intensifier' },
+    { id: 'buzzword', label: 'Buzzword', re: /\b(?:delve into|unlock|seamless|leverage|elevate|game-changer|look no further|robust solution)\b/gi,
+      suggestion: 'Say it plainly' },
+    { id: 'hedge', label: 'Hedging', re: /(?:it can be seen as|it goes without saying|needless to say)/gi,
+      suggestion: 'Take a position' },
+  ];
+
+  const AI_PATTERNS = IS_EN ? AI_PATTERNS_EN : AI_PATTERNS_KO;
 
   const SHORT_LINK_RE = /(?:bit\.ly|me2\.do|vo\.la|han\.gl|url\.kr|buly\.kr|t\.co|is\.gd|tinyurl\.com)\/[^\s)]*/gi;
   const PHONE_RE = /(?:01[016789]|0[2-6][0-9]?)[-.\s]?\d{3,4}[-.\s]?\d{4}/g;
@@ -548,7 +608,7 @@
       const l = line.trim();
       if (!l) return;
       if (/^#{1,4}\s+\S/.test(l)) { n++; return; }
-      if (l.length <= 34 && !/[.!?]$/.test(l) && /^(?:[■▶◆◇□▪◦]|[①-⑳]|[가-힣A-Za-z0-9 ]{2,20}\s*[:：])/.test(l)) n++;
+      if (l.length <= 34 && !/[.!?]$/.test(l) && /^(?:#{1,3}\s|[■▶◆◇□▪◦]|[①-⑳]|[가-힣A-Za-z0-9 ]{2,20}\s*[:：])/.test(l)) n++;
       else if (/^\d+[.)]\s*\S/.test(l) && l.length <= 26 && !/다\.$|요\.$/.test(l)) n++;
     });
     return n;
@@ -807,6 +867,21 @@
   function titleCandidates(topic, keyword, audience) {
     const kw = String(keyword || topic || '이 주제').trim();
     const who = String(audience || '처음 시작하는 분').trim();
+    if (IS_EN) {
+      const k2 = String(keyword || topic || 'this topic').trim();
+      const w2 = String(audience || 'first-time readers').trim();
+      const en = [
+        ['Numeric list', '3 things to check first: ' + k2],
+        ['Question', k2 + ' — how should ' + w2 + ' choose?'],
+        ['Comparison', k2 + ': A vs B after two weeks'],
+        ['Experience', 'What I changed after trying ' + k2],
+        ['Loss aversion', 'What ' + k2 + ' costs you if you skip it'],
+      ];
+      return en.map(function (pair) {
+        const len = codePoints(pair[1]);
+        return { formula: pair[0], text: pair[1], length: len, ok: len >= TITLE_MIN && len <= TITLE_MAX };
+      });
+    }
     const raw = [
       ['숫자·목록형', kw + ' 3가지, ' + who + '가 먼저 확인할 것'],
       ['질문형', kw + ', ' + who + '는 어떻게 고를까'],
@@ -821,6 +896,7 @@
   }
 
   function buildOutline(options) {
+    if (IS_EN) return buildOutlineEN(options);
     const o = options || {};
     const topic = String(o.topic || o.keyword || '').trim();
     const keyword = String(o.keyword || o.topic || '').trim();
@@ -916,6 +992,130 @@
     };
   }
 
+  function buildOutlineEN(options) {
+    const o = options || {};
+    const topic = String(o.topic || o.keyword || '').trim();
+    const keyword = String(o.keyword || o.topic || '').trim();
+    const audience = String(o.audience || 'first-time readers').trim();
+    const tone = toneMeta(o.tone).id;
+    const goal = Math.max(800, Math.round(Number(o.goalChars) || 2200));
+    const include = Object.assign({ table: true, checklist: true, faq: true, price: true, caution: true }, o.include || {});
+    const kw = keyword || 'this topic';
+
+    const skeletons = {
+      casual: [
+        { title: 'If ' + kw + ' is the problem, here is the answer first', points: ['One line on what ' + audience + ' actually face', 'The conclusion up front', 'Why I checked this myself'] },
+        { title: 'The 3 mistakes ' + audience + ' make most', points: ['Mistake 1 and what it cost', 'Mistake 2 and the fix', 'Mistake 3, short, with the rule of thumb'] },
+        { title: 'The order I did it in — ' + topic + ' in 3 steps', points: ['What you need', 'The real order and how long it took', 'Where I got stuck and how I got out'] },
+        { title: kw + ' compared: A vs B', points: ['The criteria first', 'My pick and why, under the table', 'How much money and time differ'] },
+        { title: '3 questions I get (+ closing)', points: ['2 questions that show up in search', 'Answers for my situation', 'Close with one question for comments'] },
+      ],
+      expert: [
+        { title: kw + ': what to check first', points: ['The three criteria up front', 'Why each one matters', 'Scope and assumptions of this post'] },
+        { title: 'Criterion 1 — what ' + audience + ' miss', points: ['The common belief vs reality', 'How to verify (numbers, official data)', 'Exceptions'] },
+        { title: 'Criterion 2 — cost and alternatives', points: ['Terms of option A and B', 'Pros and cons on the same scale', 'A selection matrix'] },
+        { title: kw + ' action checklist', points: ['5 tasks in order', 'Time per step', 'Failure signals and responses'] },
+        { title: 'Wrap-up — when this is worth it', points: ['Who it suits / who it does not', 'Remaining risk', 'Further reading'] },
+      ],
+      review: [
+        { title: 'Two weeks in: my verdict on ' + kw, points: ['Why I bought it and on what terms', 'First impression in one line', 'The verdict first'] },
+        { title: 'Spec sheet vs what it felt like', points: ['What the specs promised', 'Where reality differed', 'Show it with photos and numbers'] },
+        { title: '3 things I liked, 2 I did not', points: ['Likes with the situation', 'Do not hide the dislikes', 'Who would still be fine with it'] },
+        { title: kw + ' alternatives table', points: ['Price, consumables, support', 'What I would pick again', 'Used and alternative options'] },
+        { title: 'Who this is for (+ overall)', points: ['2 good fits', '1 bad fit', 'Ask readers about their case'] },
+      ],
+    };
+
+    const ratio = [0.15, 0.25, 0.25, 0.2, 0.15];
+    const h2 = skeletons[tone].map(function (s, i) {
+      return {
+        index: i + 1,
+        title: s.title,
+        points: s.points.slice(),
+        targetChars: Math.round(goal * ratio[i] / 10) * 10,
+      };
+    });
+
+    if (!include.faq) h2[4].points[0] = 'A short summary instead of common questions';
+    if (!include.price) h2[3].points[2] = 'How much time and effort differ';
+
+    const checklist = [
+      'Title ' + TITLE_MIN + '–' + TITLE_MAX + ' characters, keyword within the first 20',
+      goal.toLocaleString('en-US') + ' characters or more (no spaces)',
+      'Use "' + kw + '" 4–8 times, naturally inside sentences',
+      '5 H2 subheads, no paragraph over 3 lines (about 200 characters)',
+      include.table ? 'One comparison table — item, A, B, my pick' : 'A 3-line summary box instead',
+      include.caution ? 'At least one caution or downside (it builds trust)' : 'The time and cost numbers from your own run',
+      'No short links, phone numbers or unsupported superlatives',
+      include.checklist ? 'Run the pre-publish checklist on yourself' : 'One question for comments at the end',
+    ];
+
+    const table = {
+      caption: kw + ' comparison (fill before publishing)',
+      columns: ['Item', 'Option A', 'Option B', 'My pick'],
+      rows: [['Price', '', '', ''], ['Setup and use', '', '', ''], ['Pros', '', '', ''], ['Cons and cautions', '', '', ''], ['Best for', '', '', '']],
+    };
+
+    const questions = [
+      'What confused you most about ' + kw + '?',
+      'If you are ' + audience + ', which would you pick, A or B?',
+      'Tell me a method I missed and I will add it to the next post.',
+    ];
+
+    return {
+      topic: topic,
+      keyword: kw,
+      audience: audience,
+      tone: tone,
+      toneLabel: toneMeta(tone).label,
+      goalChars: goal,
+      include: include,
+      h2: h2,
+      checklist: checklist,
+      table: table,
+      questions: questions,
+      tags: tagSet(kw, topic, audience),
+      titles: titleCandidates(topic, keyword, audience),
+    };
+  }
+
+
+  function buildPromptEN(outline) {
+    const lines = [];
+    lines.push('You are a working writer who gets Korean Naver blog posts into the top results.');
+    lines.push('Follow the conditions below exactly and write a post that can be published as is.');
+    lines.push('');
+    lines.push('[Topic] ' + (outline.topic || '(no topic yet)'));
+    lines.push('[Target keyword] ' + outline.keyword);
+    lines.push('[Reader] ' + outline.audience);
+    const toneEn = { casual: 'Casual', expert: 'Expert', review: 'Hands-on review' }[outline.tone] || 'Casual';
+    lines.push('[Tone] ' + toneEn + ' — the way someone who actually did it would talk, in short sentences.');
+    lines.push('[Length] ' + outline.goalChars.toLocaleString('en-US') + ' characters or more (excluding spaces)');
+    lines.push('');
+    lines.push('[Structure] Use these 5 H2s exactly, with 2–3 paragraphs under each');
+    outline.h2.forEach(function (s) {
+      lines.push('H2 ' + s.index + '. ' + s.title + '  (about ' + s.targetChars + ' characters)');
+    });
+    lines.push('');
+    lines.push('[Required]');
+    lines.push('- Put the conclusion or the key number in the first three sentences.');
+    lines.push('- Use "' + outline.keyword + '" once in the first 20 characters of the title, then 4–8 times in the body, naturally.');
+    lines.push('- No paragraph longer than 3 lines (about 200 characters). Every subhead gets a list or a table.');
+    if (outline.include.table) lines.push('- One comparison table (markdown: item, option A, option B, my pick).');
+    if (outline.include.checklist) lines.push('- A 5-item pre-publish checklist.');
+    lines.push('- End with one question for comments and 10 tags.');
+    lines.push('- Do not invent facts. Use only numbers and experiences you can verify.');
+    lines.push('');
+    lines.push('[Avoid]');
+    lines.push('- AI summary phrasing such as "Let us take a look", "It is important to note", "In conclusion".');
+    lines.push('- Unsupported superlatives (best, number one, perfect) and health or finance guarantees.');
+    lines.push('- Short links, phone numbers, account numbers, pasted duplicate sentences.');
+    lines.push('- A title or first paragraph that promises something the post does not deliver.');
+    lines.push('');
+    lines.push('[Output] One title → body with subheads → 10 tags. No preamble or sign-off, just the draft.');
+    return lines.join('\n');
+  }
+
   function tagSet(keyword, topic, audience) {
     const kw = String(keyword || '').trim();
     const out = [];
@@ -925,6 +1125,13 @@
     };
     push(kw);
     push(kw.replace(/\s+/g, ''));
+    if (IS_EN) {
+      ['tips', 'review', 'how to', 'comparison', 'guide', 'checklist'].forEach(function (s) { if (kw) push(kw + ' ' + s); });
+      push(audience);
+      push(String(topic || '').split(/\s+/)[0]);
+      ['beginner', 'guide', 'notes', 'daily'].forEach(push);
+      return out.slice(0, 10);
+    }
     ['추천', '후기', '방법', '비교', '정리', '꿀팁'].forEach(function (s) { if (kw) push(kw + ' ' + s); });
     push(audience);
     push(String(topic || '').split(/\s+/)[0]);
@@ -935,6 +1142,7 @@
   function buildPrompt(options) {
     const o = options || {};
     const outline = buildOutline(o);
+    if (IS_EN) return buildPromptEN(outline);
     const lines = [];
     lines.push('너는 한국 네이버 블로그에서 상위노출되는 원고를 쓰는 실무 작가다.');
     lines.push('아래 조건을 그대로 지켜서 바로 발행 가능한 원고를 써라.');

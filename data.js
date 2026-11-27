@@ -148,10 +148,90 @@
     ].join('\n'),
   };
 
+
+  /* ── English demo data (EN UI) ─────────────────────────── */
+  const IS_EN = (typeof window !== 'undefined' && window.ONETAP_LANG === 'en');
+
+  const PASTE_SAMPLE_EN = [
+    'keyword\tPC searches\tMobile searches\tBlog docs\tCategory',
+    'humidifier cleaning schedule\t3,200\t14,800\t640\tHome & living',
+    'selling a used iPhone timing\t1,900\t5,400\t820\tIT',
+    'storing kids snacks\t800\t4,100\t310\tParenting',
+  ].join('\n');
+
+  const SAMPLE_GOOD_EN = {
+    id: 'sample-good',
+    label: 'Well-written sample',
+    keyword: 'winter humidifier care',
+    title: 'Winter humidifier care in 20 minutes a week',
+    body: [
+      'In winter I run two humidifiers and I nearly threw both away. After three seasons the fix turned out to be small and boring: change the water daily, scrub once a week, dry everything before it goes back together. That whole routine takes 20 minutes.',
+      '',
+      '## Why scale builds up so fast',
+      'A humidifier does not send all of its water into the air. What stays behind dries on the tank wall, leaves minerals, and bacteria settle on top. Tap water speeds this up. I tried filtered water for a year, then went back to tap water and simply change it every day.',
+      'Water left sitting for a day starts to smell. In winter the tank empties faster, so the smell shows up sooner. Most of it starts in the thin film on the tank floor. If it feels slippery, you are already late, and a new tank is often cheaper than scraping.',
+      '',
+      '## The 20-minute weekly routine',
+      'You need citric acid, a soft brush and a kitchen towel. Baking soda works too, but citric acid cut through my scale faster and the scale came back less often.',
+      '',
+      '- Fill the tank with warm water and a spoon of citric acid, then wait 10 minutes',
+      '- Brush the floor and corners from the inside out',
+      '- Rinse two or three times and dry completely with a kitchen towel',
+      '- Rinse the filter under running water and dry it in the shade',
+      '',
+      'If you rush the rinse, the citric acid smell spreads through the room. I smell the last rinse water before I refill. One more rinse fixes it, and the whole thing still fits in 20 minutes.',
+      '',
+      '## Which type needs what',
+      '',
+      '| Item | Warm mist | Ultrasonic | Evaporative |',
+      '| --- | --- | --- | --- |',
+      '| Scale cleaning | Weekly | Weekly | Every 2 weeks |',
+      '| Noise | Almost none | Some | Fan noise |',
+      '| Upkeep | Low | High | Medium |',
+      '| Best for | Bedroom | Small room | Living room |',
+      '',
+      'The ultrasonic unit looked easiest because the scale is visible, but it has more parts to take apart. The warm mist unit was the simplest to clean and cost a little more in electricity.',
+      '',
+      '## Scale and mold are not the same',
+      'A hard white mark is scale. Citric acid dissolves it in ten minutes. A black dot or a green tint is mold, and citric acid alone will not fix it: take the part off and dry it fully first. Once mold settles, the smell keeps coming back. I cleaned one unit three times thinking it was scale before I found mold inside the water channel with a torch.',
+      '',
+      '## After a month',
+      'A month into the weekly routine the room smelled different. Before, opening the door in the morning brought a stale smell; now there is only a faint water smell. The white dust inside the unit is almost gone and the electricity bill did not move. What helped most was not a new machine. It was keeping the cleaning day.',
+      '',
+      '## If you are buying your first one',
+      'Pick a model with few parts that opens wide enough to wash as one piece. If the tank opening is narrow, the brush does not fit and you stop cleaning. I bought my first one on looks, replaced it two months later, and now check the tank opening with my hand before anything else. Always let every part dry completely before assembly.',
+      '',
+      '## Questions I get',
+      'Q. Does boiling tap water reduce scale?',
+      'A. A little, because some minerals settle out. You still have to wait for it to cool, and it never disappears completely. I just change tap water daily.',
+      '',
+      'Q. When do you replace the filter?',
+      'A. Every two months. Sooner if it smells or the water stops flowing. Drying the filter alone bought me another month.',
+      '',
+      'Q. Can I leave it on all night?',
+      'A. It depends on the room and the humidity. Watch a hygrometer and switch off above 50%. I check once before bed and set a four-hour timer.',
+      '',
+      'Winter humidifier care is not a big project. Change the water daily, scrub 20 minutes a week, dry everything. Three habits and a machine lasts for years. How often do you clean yours?',
+    ].join('\n'),
+  };
+
+  const SAMPLE_AI_EN = {
+    id: 'sample-ai',
+    label: 'AI-sounding sample',
+    keyword: 'winter humidifier care',
+    title: 'Winter Humidifier Care: The Complete Guide to Perfect Results',
+    body: [
+      'In this article, we will explore various aspects of winter humidifier care. It is important to note that winter humidifier care plays a crucial role in your home.',
+      'First, it is important to note that you should change the water frequently. Moreover, cleaning with citric acid can help remove scale effectively. This is a 100% guaranteed method for perfect results.',
+      'Additionally, replacing the filter regularly is a wide range of best practice. Furthermore, winter humidifier care can help improve your indoor environment significantly.',
+      'Overall, our innovative design and world-class approach make this the best solution on the market. In conclusion, winter humidifier care is extremely important for your health.',
+    ].join('\n'),
+  };
+
   return {
     SEED_VERSION: SEED_VERSION,
     DEMO_KEYWORDS: DEMO_KEYWORDS,
-    PASTE_SAMPLE: PASTE_SAMPLE,
-    SAMPLES: [SAMPLE_GOOD, SAMPLE_AI],
+    PASTE_SAMPLE: IS_EN ? PASTE_SAMPLE_EN : PASTE_SAMPLE,
+    SAMPLES: IS_EN ? [SAMPLE_GOOD_EN, SAMPLE_AI_EN] : [SAMPLE_GOOD, SAMPLE_AI],
   };
 });
